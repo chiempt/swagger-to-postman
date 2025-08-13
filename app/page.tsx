@@ -72,10 +72,6 @@ export default function HomePage() {
               </div>
             </TabsContent>
 
-            <TabsContent value="quick-search" className="mt-6">
-              <QuickSearch />
-            </TabsContent>
-
             <TabsContent value="dashboard" className="mt-6">
               <Dashboard />
             </TabsContent>

@@ -170,52 +170,6 @@ export function SourceForm() {
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="rawText">Or paste OpenAPI content directly</Label>
-          <Textarea
-            id="rawText"
-            placeholder="Paste your OpenAPI specification content here..."
-            value={rawText}
-            onChange={(e) => setRawText(e.target.value)}
-            rows={4}
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="file">Or upload a file</Label>
-          <div className="flex items-center gap-2">
-            <Input
-              id="file"
-              type="file"
-              accept=".json,.yaml,.yml"
-              onChange={handleFileUpload}
-              disabled={isLoading}
-              ref={fileInputRef}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isLoading}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Choose File
-            </Button>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="tags">Tags (comma-separated)</Label>
-          <Input
-            id="tags"
-            placeholder="api,swagger,petstore"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            disabled={isLoading}
-          />
-        </div>
-
         <div className="flex gap-2">
           <Button onClick={processOpenAPI} disabled={isLoading || (!url.trim() && !rawText.trim())} className="flex-1">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

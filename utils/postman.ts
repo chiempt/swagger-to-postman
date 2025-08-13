@@ -15,11 +15,14 @@ export function convertToOpenApiUrl(inputUrl: string): string {
       u.pathname = u.pathname.replace(swaggerPatterns, "openapi.json");
     } else {
       // Nếu không match gì thì append openapi.json vào
-      if (u.pathname.endsWith("/")) {
-        u.pathname += "openapi.json";
-      } else {
-        u.pathname += "/openapi.json";
-      }
+      // Always replace trailing slash with openapi.json
+      // Remove any hash and everything after it, then append /openapi.json
+      u.hash = "";
+
+      u.pathname = u.pathname.replace(/\/$/, "") + "/openapi.json";
+      const arrPath = u.pathname.split("/");
+      arrPath.pop();
+      u.pathname = arrPath.join("/") + "/openapi.json";
     }
 
     return u.toString();
