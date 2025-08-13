@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { ChevronDown, Upload, Loader2, Download } from "lucide-react"
+import { ChevronDown, Upload, Loader2, Download, History, Bookmark, Tag } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useOpenAPIStore } from "@/lib/store"
 
@@ -18,9 +18,10 @@ export function SourceForm() {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isGeneratingPostman, setIsGeneratingPostman] = useState(false)
+  const [tags, setTags] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
-  const { setResult, setError, clearState, result } = useOpenAPIStore()
+  const { setResult, setError, clearState, result, searchHistory, bookmarks, updateTags } = useOpenAPIStore()
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -35,12 +36,14 @@ export function SourceForm() {
   }
 
   const processOpenAPI = async () => {
+    const startTime = performance.now()
     setIsLoading(true)
     clearState()
 
+    let source = ""
+    let sourceType: "url" | "text" = "url"
+
     try {
-      let source = ""
-      let sourceType = ""
 
       // Priority: File upload → Raw paste → URL
       if (rawText.trim()) {
@@ -66,12 +69,26 @@ export function SourceForm() {
           throw new Error(result.error?.message || "Failed to fetch OpenAPI specification")
         }
 
-        setResult(result.data, source, sourceType)
+        const processingTime = performance.now() - startTime
+        setResult(result.data, source, sourceType, processingTime)
       } else {
         // Process raw text locally
         const { processLocalContent } = await import("@/lib/openapi-processor")
         const result = await processLocalContent(source)
-        setResult(result, source, sourceType)
+        const processingTime = performance.now() - startTime
+        setResult(result, source, sourceType, processingTime)
+      }
+
+      // Add tags if provided
+      if (tags.trim()) {
+        const tagArray = tags.split(',').map(tag => tag.trim()).filter(Boolean)
+        // Update the latest history item with tags
+        if (tagArray.length > 0) {
+          const latestItem = searchHistory[0]
+          if (latestItem) {
+            updateTags(latestItem.id, tagArray)
+          }
+        }
       }
 
       toast({
@@ -79,8 +96,9 @@ export function SourceForm() {
         description: "OpenAPI specification processed successfully",
       })
     } catch (error) {
+      const processingTime = performance.now() - startTime
       const message = error instanceof Error ? error.message : "An unexpected error occurred"
-      setError(message)
+      setError(message, source || "", sourceType || "url", processingTime)
       toast({
         title: "Error",
         description: message,
@@ -94,6 +112,7 @@ export function SourceForm() {
   const handleReset = () => {
     setUrl("")
     setRawText("")
+    setTags("")
     clearState()
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
@@ -132,6 +151,9 @@ export function SourceForm() {
     }
   }
 
+  const historyCount = searchHistory.length
+  const bookmarkCount = bookmarks.length
+
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -148,6 +170,52 @@ export function SourceForm() {
           />
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="rawText">Or paste OpenAPI content directly</Label>
+          <Textarea
+            id="rawText"
+            placeholder="Paste your OpenAPI specification content here..."
+            value={rawText}
+            onChange={(e) => setRawText(e.target.value)}
+            rows={4}
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="file">Or upload a file</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              id="file"
+              type="file"
+              accept=".json,.yaml,.yml"
+              onChange={handleFileUpload}
+              disabled={isLoading}
+              ref={fileInputRef}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Choose File
+            </Button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="tags">Tags (comma-separated)</Label>
+          <Input
+            id="tags"
+            placeholder="api,swagger,petstore"
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
+            disabled={isLoading}
+          />
+        </div>
+
         <div className="flex gap-2">
           <Button onClick={processOpenAPI} disabled={isLoading || (!url.trim() && !rawText.trim())} className="flex-1">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -158,52 +226,18 @@ export function SourceForm() {
           </Button>
         </div>
 
+        {/* Quick Stats */}
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <History className="h-4 w-4" />
+            <span>{historyCount} searches</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Bookmark className="h-4 w-4" />
+            <span>{bookmarkCount} bookmarks</span>
+          </div>
+        </div>
       </div>
-
-      <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" className="w-full justify-between">
-            Advanced Options
-            <ChevronDown className={`h-4 w-4 transition-transform ${isAdvancedOpen ? "rotate-180" : ""}`} />
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-4 pt-4">
-          <div className="space-y-2">
-            <Label htmlFor="raw-text">Raw Content (JSON/YAML)</Label>
-            <Textarea
-              id="raw-text"
-              placeholder="Paste your OpenAPI specification here..."
-              value={rawText}
-              onChange={(e) => setRawText(e.target.value)}
-              rows={8}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>File Upload</Label>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading}
-                className="flex items-center gap-2"
-              >
-                <Upload className="h-4 w-4" />
-                Choose File
-              </Button>
-              <span className="text-sm text-muted-foreground">Supports .json, .yaml, .yml files</span>
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json,.yaml,.yml"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
     </div>
   )
 }

@@ -27,9 +27,10 @@ import { useToast } from "@/hooks/use-toast"
 interface JsonViewerProps {
   data: any
   title?: string
+  compact?: boolean
 }
 
-export function JsonViewer({ data, title = "JSON Viewer" }: JsonViewerProps) {
+export function JsonViewer({ data, title = "JSON Viewer", compact = false }: JsonViewerProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set([""]))
   const [viewMode, setViewMode] = useState<"tree" | "raw">("tree")

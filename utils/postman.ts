@@ -1,40 +1,45 @@
 export function convertToOpenApiUrl(inputUrl: string): string {
   try {
     const u = new URL(inputUrl);
-    // If path ends with /docs or /docs/, replace with /openapi.json
-    if (u.pathname.match(/\/docs\/?$/)) {
-      u.pathname = u.pathname.replace(/\/docs\/?$/, "/openapi.json");
+
+    // Nếu đã là openapi.json thì giữ nguyên
+    if (/\/openapi\.json$/i.test(u.pathname)) {
       return u.toString();
     }
-    // If path ends with /swagger or /swagger/, replace with /openapi.json
-    if (u.pathname.match(/\/swagger\/?$/)) {
-      u.pathname = u.pathname.replace(/\/swagger\/?$/, "/openapi.json");
-      return u.toString();
+
+    // Regex nhận dạng các path swagger phổ biến ở cuối URL
+    const swaggerPatterns = /(docs|redoc|swagger(-ui)?)(\/)?$/i;
+
+    if (swaggerPatterns.test(u.pathname)) {
+      // Thay cụm swagger/docs/redoc ở cuối bằng openapi.json
+      u.pathname = u.pathname.replace(swaggerPatterns, "openapi.json");
+    } else {
+      // Nếu không match gì thì append openapi.json vào
+      if (u.pathname.endsWith("/")) {
+        u.pathname += "openapi.json";
+      } else {
+        u.pathname += "/openapi.json";
+      }
     }
-    // If path ends with .docs, replace with .open.json
-    if (u.pathname.endsWith(".docs")) {
-      u.pathname = u.pathname.replace(/\.docs$/, ".open.json");
-      return u.toString();
-    }
-    // If path ends with .docs.json, replace with .open.json
-    if (u.pathname.endsWith(".docs.json")) {
-      u.pathname = u.pathname.replace(/\.docs\.json$/, ".open.json");
-      return u.toString();
-    }
-    // If path ends with .json, try replacing with .open.json
-    if (u.pathname.endsWith(".json")) {
-      u.pathname = u.pathname.replace(/\.json$/, ".open.json");
-      return u.toString();
-    }
-    // If path does not end with .json, try appending /openapi.json
-    if (!u.pathname.endsWith(".json")) {
-      u.pathname = u.pathname.replace(/\/$/, "") + "/openapi.json";
-      return u.toString();
-    }
-    // Fallback: return original
-    return inputUrl;
+
+    return u.toString();
   } catch {
     return inputUrl;
+  }
+}
+
+export async function fetchSwaggerJson(inputUrl: string) {
+  const apiUrl = convertToOpenApiUrl(inputUrl);
+
+  try {
+    const res = await fetch(apiUrl);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status} - ${res.statusText}`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.error(`Failed to fetch Swagger JSON from ${apiUrl}:`, err);
+    throw err;
   }
 }
 
@@ -46,7 +51,11 @@ export function getOpenApiUrl(url: string) {
   return url;
 }
 
-export function generatePostmanCollection(json: any, url: string, authorization?: string) {
+export function generatePostmanCollection(
+  json: any,
+  url: string,
+  authorization?: string
+) {
   const openApiUrl = getOpenApiUrl(url);
   const oldUrl = json.servers?.[0]?.url || "";
   const newUrl = openApiUrl + oldUrl;
@@ -62,7 +71,7 @@ export function generatePostmanCollection(json: any, url: string, authorization?
     json.components.securitySchemes.BearerAuth = {
       type: "http",
       scheme: "bearer",
-      bearerFormat: "JWT"
+      bearerFormat: "JWT",
     };
 
     // Add global security requirement
@@ -72,7 +81,7 @@ export function generatePostmanCollection(json: any, url: string, authorization?
     if (!json.variables) json.variables = {};
     json.variables.AUTHORIZATION = {
       default: authorization,
-      description: "Authorization token for API requests"
+      description: "Authorization token for API requests",
     };
   }
 
