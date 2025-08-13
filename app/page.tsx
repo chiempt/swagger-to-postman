@@ -17,6 +17,7 @@ import {
   Search,
   TrendingUp
 } from "lucide-react"
+import AdBanner from "@/components/Ads"
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState("converter")
@@ -110,6 +111,7 @@ export default function HomePage() {
           </Tabs>
         </div>
       </main>
+      <AdBanner />
     </div>
   )
 }

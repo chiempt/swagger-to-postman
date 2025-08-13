@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
+import Script from "next/script"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -33,6 +34,13 @@ html {
           {children}
           <Toaster />
         </ThemeProvider>
+          <Script
+    id="adsense-script"
+    async
+    strategy="afterInteractive"
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9213941228935538"
+    crossOrigin="anonymous"
+  />
       </body>
     </html>
   )
