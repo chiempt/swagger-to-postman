@@ -12,15 +12,17 @@ export function convertToOpenApiUrl(inputUrl: string): string {
 
     if (swaggerPatterns.test(u.pathname)) {
       // Thay cụm swagger/docs/redoc ở cuối bằng openapi.json
+      console.log(u.pathname, "u.pathname.1");
       u.pathname = u.pathname.replace(swaggerPatterns, "openapi.json");
     } else {
+      console.log(u.pathname, "u.pathname.22132");
       // Nếu không match gì thì append openapi.json vào
       // Always replace trailing slash with openapi.json
       // Remove any hash and everything after it, then append /openapi.json
       u.hash = "";
 
-      u.pathname = u.pathname.replace(/\/$/, "") + "/openapi.json";
       const arrPath = u.pathname.split("/");
+      console.log(arrPath, "arrPath");
       arrPath.pop();
       u.pathname = arrPath.join("/") + "/openapi.json";
     }
